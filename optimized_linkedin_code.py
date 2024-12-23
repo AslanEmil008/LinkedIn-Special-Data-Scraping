@@ -34,8 +34,8 @@ driver.get("https://www.linkedin.com/login")
 username = driver.find_element(By.ID, "username")
 password = driver.find_element(By.ID, "password")
 
-username.send_keys("aslanemil008@gmail.com")
-password.send_keys("aslankaren27+")
+username.send_keys("email") #replace your email
+password.send_keys("password") #replace your password 
 password.send_keys(Keys.RETURN)
 
 
