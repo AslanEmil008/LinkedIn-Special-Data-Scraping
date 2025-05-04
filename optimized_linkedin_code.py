@@ -118,45 +118,70 @@ list_last_names =[
 
 # Function to scrape profiles
 def scrape_linkedin_profiles(driver, school, last_name, output_file):
-    WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, "search-results-container")))
+    # Wait for the results container to load
+    WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located((By.CLASS_NAME, "search-results-container"))
+    )
     scraped_data = []
+    # Locate the search results container and ul element
+    search_results_container = driver.find_element(By.CLASS_NAME, "search-results-container")
 
-    # Locate profiles and extract information
     try:
-        search_results_container = driver.find_element(By.CLASS_NAME, "search-results-container")
         ul_element = search_results_container.find_element(By.TAG_NAME, 'ul')
-        li_elements = ul_element.find_elements(By.CSS_SELECTOR, "li.reusable-search__result-container")
-
-        for profile in li_elements:
-            name = profile.find_element(By.CSS_SELECTOR, "span[aria-hidden='true']").text
-            profile_title = profile.find_element(By.CSS_SELECTOR, "div.entity-result__primary-subtitle").text
-            linkedin_element = profile.find_element(By.CSS_SELECTOR, "a.app-aware-link")
-            linkedin_url = linkedin_element.get_attribute("href").split('?')[0]
-
-            first_name = name.split()[0] if name.split()[0].lower() != last_name.lower() else None
-
-            scraped_data.append({
-                "First Name": first_name,
-                "Last Name": last_name,
-                "University": school,
-                "Profession": profile_title,
-                "LinkedIn URL": linkedin_url
-            })
-
-    except Exception as e:
-        print(f"Error occurred while scraping: {e}")
+    except:
+        # Exit the function if the 'ul' element is not found
         return
 
-    # Save data to Excel
-    df_new = pd.DataFrame(scraped_data)
+    
+    # Get all 'li' elements (profiles)
+    li_elements = ul_element.find_elements(By.CSS_SELECTOR, "li.reusable-search__result-container")
+    
+    # Loop through each profile and extract information
+    for profile in li_elements:
+        # time.sleep(20)
+        # print(profile)
+        name = profile.find_element(By.CSS_SELECTOR, "span[aria-hidden='true']").text  
+        name_parts = name.split()
+        first_name = next((part for part in name_parts if part.lower() != last_name.lower()), None)  # Get first name excluding last name
+
+        profile_title = profile.find_element(By.CSS_SELECTOR, "div.entity-result__primary-subtitle").text  # Adjusted for job title
+        linkedin_element = profile.find_element(By.CSS_SELECTOR, "a.app-aware-link")
+        linkedin_url = linkedin_element.get_attribute("href")
+
+        linkedin_url = linkedin_url.split('?')[0]
+       
+        scraped_data.append({
+                "First Name": first_name,
+                "Last Name": last_name,
+                "Name of University": school,
+                "Current Profession": profile_title,
+                "LinkedIn URL": linkedin_url
+        })
+
+    df_new = pd.DataFrame(scraped_data)  # Assuming scraped_data is already defined
+
+    chunk_size = 1000  # Set a chunk size (adjust as needed)
+
+        # Check if the file already exists
     if os.path.exists(output_file):
+            # Load the existing data from the Excel file
         df_existing = pd.read_excel(output_file)
+            # Append the new data to the existing data
         df_combined = pd.concat([df_existing, df_new], ignore_index=True)
     else:
+            # If the file does not exist, use the new data only
         df_combined = df_new
 
-    df_combined.to_excel(output_file, index=False)
-    print(f"Data has been updated in {output_file}")
+        # Write the combined DataFrame to the Excel file in chunks
+    try:
+        with pd.ExcelWriter(output_file, engine='openpyxl', mode='w') as writer:
+            startrow = 0
+            for chunk in np.array_split(df_combined, max(1, len(df_combined) // chunk_size)):
+                chunk.to_excel(writer, sheet_name='Sheet1', startrow=startrow, header=(startrow == 0), index=False)
+                startrow += len(chunk)  # Update the starting row for the next chunk
+        print(f"Data has been updated in {output_file}")
+    except Exception as e:
+        print(f"Failed to write to Excel: {e}")
 
 # Loop through universities and last names
 for school in list_universities:
@@ -225,71 +250,3 @@ for school in list_universities:
 
 driver.quit()
 
-
-
---------------------------------------------------------------------------------
-def scrape_linkedin_profiles(driver, school, last_name, output_file):
-    # Wait for the results container to load
-    WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.CLASS_NAME, "search-results-container"))
-    )
-    scraped_data = []
-    # Locate the search results container and ul element
-    search_results_container = driver.find_element(By.CLASS_NAME, "search-results-container")
-
-    try:
-        ul_element = search_results_container.find_element(By.TAG_NAME, 'ul')
-    except:
-        # Exit the function if the 'ul' element is not found
-        return
-
-    
-    # Get all 'li' elements (profiles)
-    li_elements = ul_element.find_elements(By.CSS_SELECTOR, "li.reusable-search__result-container")
-    
-    # Loop through each profile and extract information
-    for profile in li_elements:
-        # time.sleep(20)
-        # print(profile)
-        name = profile.find_element(By.CSS_SELECTOR, "span[aria-hidden='true']").text  
-        name_parts = name.split()
-        first_name = next((part for part in name_parts if part.lower() != last_name.lower()), None)  # Get first name excluding last name
-
-        profile_title = profile.find_element(By.CSS_SELECTOR, "div.entity-result__primary-subtitle").text  # Adjusted for job title
-        linkedin_element = profile.find_element(By.CSS_SELECTOR, "a.app-aware-link")
-        linkedin_url = linkedin_element.get_attribute("href")
-
-        linkedin_url = linkedin_url.split('?')[0]
-       
-        scraped_data.append({
-                "First Name": first_name,
-                "Last Name": last_name,
-                "Name of University": school,
-                "Current Profession": profile_title,
-                "LinkedIn URL": linkedin_url
-        })
-
-    df_new = pd.DataFrame(scraped_data)  # Assuming scraped_data is already defined
-
-    chunk_size = 1000  # Set a chunk size (adjust as needed)
-
-        # Check if the file already exists
-    if os.path.exists(output_file):
-            # Load the existing data from the Excel file
-        df_existing = pd.read_excel(output_file)
-            # Append the new data to the existing data
-        df_combined = pd.concat([df_existing, df_new], ignore_index=True)
-    else:
-            # If the file does not exist, use the new data only
-        df_combined = df_new
-
-        # Write the combined DataFrame to the Excel file in chunks
-    try:
-        with pd.ExcelWriter(output_file, engine='openpyxl', mode='w') as writer:
-            startrow = 0
-            for chunk in np.array_split(df_combined, max(1, len(df_combined) // chunk_size)):
-                chunk.to_excel(writer, sheet_name='Sheet1', startrow=startrow, header=(startrow == 0), index=False)
-                startrow += len(chunk)  # Update the starting row for the next chunk
-        print(f"Data has been updated in {output_file}")
-    except Exception as e:
-        print(f"Failed to write to Excel: {e}")
