@@ -1,43 +1,31 @@
 from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys #Keys-n tramdaruma stexnashari knopkeq inchpisiq en f1 return,alt and so on
+from selenium.webdriver.common.by import By #By class -y ogtagorcvuma documenti mej tarery gtnelu hamar
 import time
 import os
 import pandas as pd
-from selenium.webdriver.firefox.service import Service
-from selenium.webdriver.firefox.options import Options
-from selenium import webdriver
-from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.action_chains import ActionChains #ActoChains-y ogt mkniki sharjelu hamar,mkniki kochaknery sexmelu,stexnery sexmelu avtomatacnelu hamar
+import numpy as np
+from selenium.webdriver.chrome.service import Service as ChromeService
+from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.ui import WebDriverWait
+from bs4 import BeautifulSoup
 from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import Select
-import time
-from selenium.webdriver.support import expected_conditions as EC
 
+driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install())) 
 
-# Initialize the WebDriver for Firefox
-options = Options()
-options.headless = False  # Run in headless mode (no GUI)
-
-
-service = Service()
-driver = webdriver.Firefox(service=service, options=options)
 
 # LinkedIn login
 driver.get("https://www.linkedin.com/login")
 username = driver.find_element(By.ID, "username")
 password = driver.find_element(By.ID, "password")
 
-username.send_keys("email") #replace your email
-password.send_keys("password") #replace your password 
+username.send_keys("jastinbrendon@gmail.com")  # replace with your email
+password.send_keys("aslanemil0616//") 
 password.send_keys(Keys.RETURN)
-
+time.sleep(3)
 
 # Search smth
 search_input = driver.find_element(By.CSS_SELECTOR, '.search-global-typeahead__input')
@@ -66,122 +54,78 @@ list_universities = [
     "Abu Dhabi University",
     "Emirates College for Advanced Education",
     "Higher Colleges of Technology",
-    "INSEAD",
-    "Khalifa University",
-    "New York University Abu Dhabi",
-    "Paris-Sorbonne University Abu Dhabi",
-    "Syscoms Institute",
-    "United Arab Emirates University",
-    "Zayed University",
-    "Higher Colleges of Technology",
-    "University of Dubai",
-    "Al Dar University College",
-    "Al Ghurair University",
-    "American College of Dubai",
-    "American University in Dubai",
-    "American University in the Emirates",
-    "Amity University Dubai",
-    "British University in Dubai",
-    "Canadian University Of Dubai",
-    "Dubai Medical College for Girls",
-    "The Emirates Academy of Hospitality Management",
-    "Emirates Aviation University",
-    "Emirates College for Management & Information Technology",
-    "Hamdan Bin Mohammed Smart University",
-    "Institute of Management Technology, Dubai",
-    "International Horizons College",
-    "Middlesex University Dubai",
-    "MODUL University Dubai",
-    "Murdoch University Dubai",
-    "Rochester Institute of Technology, Dubai",
-    "S P Jain School of Global Management",
-    "Skyline University College",
-    "Synergy University Dubai",
-    "University of Dubai",
-    "University of Wollongong in Dubai",
-    "American University of Sharjah",
-    "Higher Colleges of Technology",
-    "Khalifa University",
-    "University of Sharjah",
-    "Ajman University",
-    "Gulf Medical University",   
-    "American University of Ras Al Khaimah",
-    "Bolton University of Ras Al Khaimah",
-    "London American City College",
-    "RAK Medical & Health Sciences University"
+    
 ]
 
 list_last_names =[
-    "Menezes", "Joseph", "Thomas", "George", "Paul", "Kuriakose", "Francis", "John", "Vas", 
+    #"Menezes",
+    #"Joseph",
+    "Thomas",
+    "George", "Paul", "Kuriakose", "Francis", "John", "Vas", 
     "Almeida", "Fernandes", "Rodrigues", "Silva", "Gomes", "Pereira", "Dias", "Mathew"
 ]
 
 # Function to scrape profiles
 def scrape_linkedin_profiles(driver, school, last_name, output_file):
-    # Wait for the results container to load
+    # Wait for the results to load
     WebDriverWait(driver, 10).until(
         EC.presence_of_element_located((By.CLASS_NAME, "search-results-container"))
     )
+
+    # Parse the current page source using BeautifulSoup
+    soup = BeautifulSoup(driver.page_source, 'html.parser')
+
+    # Collect profile links
+    links = set()
+    for tag in soup.find_all('a', attrs={"data-test-app-aware-link": True}):
+        href = tag.get("href")
+        if href and "/in/" in href:
+            links.add(href.split('?')[0])  # Remove tracking query params
+
+    # Collect names
+    names = []
+    for tag in soup.select("a span[aria-hidden='true']"):
+        name_text = tag.get_text(strip=True)
+        if name_text:
+            names.append(name_text)
+
+    # Combine names and URLs (safely)
     scraped_data = []
-    # Locate the search results container and ul element
-    search_results_container = driver.find_element(By.CLASS_NAME, "search-results-container")
-
-    try:
-        ul_element = search_results_container.find_element(By.TAG_NAME, 'ul')
-    except:
-        # Exit the function if the 'ul' element is not found
-        return
-
-    
-    # Get all 'li' elements (profiles)
-    li_elements = ul_element.find_elements(By.CSS_SELECTOR, "li.reusable-search__result-container")
-    
-    # Loop through each profile and extract information
-    for profile in li_elements:
-        # time.sleep(20)
-        # print(profile)
-        name = profile.find_element(By.CSS_SELECTOR, "span[aria-hidden='true']").text  
+    for name, url in zip(names, links):
         name_parts = name.split()
-        first_name = next((part for part in name_parts if part.lower() != last_name.lower()), None)  # Get first name excluding last name
+        first_name = next((part for part in name_parts if part.lower() != last_name.lower()), None)
 
-        profile_title = profile.find_element(By.CSS_SELECTOR, "div.entity-result__primary-subtitle").text  # Adjusted for job title
-        linkedin_element = profile.find_element(By.CSS_SELECTOR, "a.app-aware-link")
-        linkedin_url = linkedin_element.get_attribute("href")
-
-        linkedin_url = linkedin_url.split('?')[0]
-       
         scraped_data.append({
-                "First Name": first_name,
-                "Last Name": last_name,
-                "Name of University": school,
-                "Current Profession": profile_title,
-                "LinkedIn URL": linkedin_url
+            "First Name": first_name,
+            "Last Name": last_name,
+            "Name of University": school,
+            "LinkedIn URL": url
         })
 
-    df_new = pd.DataFrame(scraped_data)  # Assuming scraped_data is already defined
+    if not scraped_data:
+        print(f"No data found for {last_name} at {school}")
+        return
 
-    chunk_size = 1000  # Set a chunk size (adjust as needed)
+    # Save to Excel
+    df_new = pd.DataFrame(scraped_data)
+    chunk_size = 1000
 
-        # Check if the file already exists
     if os.path.exists(output_file):
-            # Load the existing data from the Excel file
         df_existing = pd.read_excel(output_file)
-            # Append the new data to the existing data
         df_combined = pd.concat([df_existing, df_new], ignore_index=True)
     else:
-            # If the file does not exist, use the new data only
         df_combined = df_new
 
-        # Write the combined DataFrame to the Excel file in chunks
     try:
         with pd.ExcelWriter(output_file, engine='openpyxl', mode='w') as writer:
             startrow = 0
             for chunk in np.array_split(df_combined, max(1, len(df_combined) // chunk_size)):
                 chunk.to_excel(writer, sheet_name='Sheet1', startrow=startrow, header=(startrow == 0), index=False)
-                startrow += len(chunk)  # Update the starting row for the next chunk
+                startrow += len(chunk)
         print(f"Data has been updated in {output_file}")
     except Exception as e:
         print(f"Failed to write to Excel: {e}")
+
 
 # Loop through universities and last names
 for school in list_universities:
@@ -202,8 +146,8 @@ for school in list_universities:
         time.sleep(2)
         driver.find_element(By.XPATH, "//input[@aria-label='Add a location']").click()
 
-        actions = ActionChains(driver)
-        actions.send_keys(Keys.DOWN).perform()
+        actions = ActionChains(driver) #classa vory kataruma mkniki kam steexnashari knopkeqy
+        actions.send_keys(Keys.DOWN).perform() #perform ogt vor et gorcoxutyuny katarelu hamar
         actions.send_keys(Keys.ENTER).perform()
         time.sleep(2)
 
@@ -242,11 +186,10 @@ for school in list_universities:
         # (Optional) You can add logic here to extract data from the results
         scrape_linkedin_profiles(driver, school, last_name, "linkedin_scraped_data.xlsx")
         # Reset filters
-        time.sleep(5)
+        time.sleep(15)
         reset_button = driver.find_element(By.XPATH, "//button[@aria-label='Reset applied filters']")
         reset_button.click()
         time.sleep(2)
 
 
 driver.quit()
-
