@@ -1,13 +1,12 @@
 from selenium import webdriver
-from selenium.webdriver.common.keys import Keys #Keys-n tramdaruma stexnashari knopkeq inchpisiq en f1 return,alt and so on
-from selenium.webdriver.common.by import By #By class -y ogtagorcvuma documenti mej tarery gtnelu hamar
+from selenium.webdriver.common.keys import Keys 
+from selenium.webdriver.common.by import By 
 import time
 import os
 import pandas as pd
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.action_chains import ActionChains #ActoChains-y ogt mkniki sharjelu hamar,mkniki kochaknery sexmelu,stexnery sexmelu avtomatacnelu hamar
-import numpy as np
+from selenium.webdriver.common.action_chains import ActionChains 
 from selenium.webdriver.chrome.service import Service as ChromeService
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.ui import WebDriverWait
@@ -57,12 +56,8 @@ list_universities = [
     
 ]
 
-list_last_names =[
-    #"Menezes",
-    #"Joseph",
-    "Thomas",
-    "George", "Paul", "Kuriakose", "Francis", "John", "Vas", 
-    "Almeida", "Fernandes", "Rodrigues", "Silva", "Gomes", "Pereira", "Dias", "Mathew"
+list_last_names =["Menezes","Joseph","Thomas","George", "Paul", "Kuriakose", "Francis", "John", "Vas", 
+                  "Almeida", "Fernandes", "Rodrigues", "Silva", "Gomes", "Pereira", "Dias", "Mathew"
 ]
 
 # Function to scrape profiles
@@ -72,17 +67,14 @@ def scrape_linkedin_profiles(driver, school, last_name, output_file):
         EC.presence_of_element_located((By.CLASS_NAME, "search-results-container"))
     )
 
-    # Parse the current page source using BeautifulSoup
     soup = BeautifulSoup(driver.page_source, 'html.parser')
 
-    # Collect profile links
     links = set()
     for tag in soup.find_all('a', attrs={"data-test-app-aware-link": True}):
         href = tag.get("href")
         if href and "/in/" in href:
-            links.add(href.split('?')[0])  # Remove tracking query params
+            links.add(href.split('?')[0]) 
 
-    # Collect names
     names = []
     for tag in soup.select("a span[aria-hidden='true']"):
         name_text = tag.get_text(strip=True)
