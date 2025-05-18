@@ -21,7 +21,7 @@ It collects and stores data for matching individuals, including:
 <b>1. First, clone this repository:</b>
 ```bash
 git clone https://github.com/AslanEmil008/LinkedIn-Special-Data-Scraping.git
-cd linkedin-data-scraper
+cd LinkedIn-Special-Data-Scraping
 ```
 <b>2. Install the required packages:</b>
 ```bash
